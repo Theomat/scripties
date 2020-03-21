@@ -1,0 +1,219 @@
+#!/usr/bin/env ruby
+# COLor Translater (COLT)
+# Enables color translation between different color spaces
+# Help : colt -h
+# Imports ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+require 'optparse'
+# Constants ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+$NAME = "colt"
+$VERSION = "0.0.1"
+# Parsing FUNCTIONS ------------------------------------------------------------
+def rgb2rgb(data)
+  return data.map { |e|  Integer(e) }
+end
+def bgr2rgb(data)
+  array = data.map { |e|  Integer(e) }
+  array.reverse!()
+  return array
+end
+# From Computer Graphics and Geometri - Agoston, Max K._5588
+# p 304
+def hsv2rgb(data)
+  array = data.map { |e|  Float(e) }
+  h = array[0] * 360
+  s = array[1]
+  v = array[2]
+  if h == 360.0
+    h = 0.0
+  else
+    h /= 60.0
+  end
+  fract = h - h.floor();
+  p = v*(1.0 - s);
+  q = v*(1.0 - s*fract);
+  t = v*(1.0 - s*(1.0 - fract));
+
+  if (0.0 <= h && h < 1.0)
+    array[0] = v
+    array[1] = t
+    array[2] = p
+  elsif (1.0 <= h && h < 2.0)
+    array[0] = q
+    array[1] = v
+    array[2] = p
+  elsif (2.0 <= h && h < 3.0)
+    array[0] = p
+    array[1] = v
+    array[2] = t
+  elsif (3.0 <= h && h < 4.0)
+    array[0] = p
+    array[1] = q
+    array[2] = v
+  elsif (4.0 <= h && h < 5.0)
+    array[0] = t
+    array[1] = p
+    array[2] = v
+  elsif (5.0 <= h && h < 6.0)
+    array[0] = v
+    array[1] = p
+    array[2] = q
+  else
+    array[0] = 0
+    array[1] = 0
+    array[2] = 0
+  end
+  return array.map { |e| Integer(255*e) }
+end
+def bw2rgb(data)
+  array = data.map { |e|  Integer(e) * 255 }
+  return array.append(array[0]).append(array[0])
+end
+def gray2rgb(data)
+  array = data.map { |e|  Integer(e) }
+  return array.append(array[0]).append(array[0])
+end
+def hex2rgb(data)
+  array = data.map { |e|  Integer(e.sub(/#/, '').ljust(6, '0') , 16) }
+  array.append((array[0] >> 8) & 255).append(array[0] & 255)
+  array[0] = array[0] >> 16
+  return array
+end
+# Pasting FUNCTIONS ------------------------------------------------------------
+def rgb2rgbs(data, delimiter)
+  return data.map { |x| x.to_s() }.join(delimiter)
+end
+def rgb2bgrs(data, delimiter)
+  return data.map { |x| x.to_s() }.reverse!().join(delimiter)
+end
+# From Computer Graphics and Geometri - Agoston, Max K._5588
+# p 303
+def rgb2hsvs(data, delimiter)
+  data = data.map { |e|  Float(e) / 255.0 }
+  max = data.max
+  min = data.min
+  l = (max + min) / 2
+  h = 0.0
+  s = 0.0
+  v = max
+  r = data[0]
+  g = data[1]
+  b = data[2]
+  if max == 0
+    s = 0
+  else
+    s = (max - min) / max
+  end
+  if s == 0
+    return "nil"
+  else
+    d = max - min
+    if r = max
+      h = (g-b) / d
+    elsif g == max
+      h = 2 + (b - r) / d
+    else
+      h = 4 + (r - g) / d
+    end
+    h = 60*h
+    if h < 0
+      h = h +360
+    end
+  end
+  return "%.2f%s%.2f%s%.2f" % [(h / 360), delimiter, s, delimiter, v]
+end
+def rgb2bws(data, delimiter)
+  if data.max() > 127
+    return "1"
+  else
+    return "0"
+  end
+end
+def rgb2grays(data, delimiter)
+  gray = data.sum() / 3
+  return gray.to_s()
+end
+def rgb2hexs(data, delimiter)
+  return data.map{|x| ('%02x' % x)}.join()
+end
+# ------------------------------------------------------------------------------
+$FORMATS  = {
+  "rgb" => [method(:rgb2rgb), method(:rgb2rgbs)],
+  "bgr" => [method(:bgr2rgb), method(:rgb2bgrs)],
+  "hsv" => [method(:hsv2rgb), method(:rgb2hsvs)],
+  "bw" => [method(:bw2rgb), method(:rgb2bws)],
+  "hex" => [method(:hex2rgb), method(:rgb2hexs)],
+  "gray" => [method(:gray2rgb), :rgb2grays]
+}
+# Guess color type based on input ++++++++++++++++++++++++++++++++++++++++++++++
+def guess_color_type(string, delimiter)
+  if string =~ /^(#|(0x))?[A-Fa-f0-9]{2,6}$/
+    if string =~ /^((2[0-4]\d)|(25[0-5])|([0-1]?\d?\d))$/
+      return "gray"
+    end
+    return "hex"
+  elsif string =~ /^(1|0)$/
+    return "bw"
+  elsif string =~ /^((2[0-4]\d)|(25[0-5])|([0-1]?\d?\d))$/
+    return "gray"
+  elsif string.split(delimiter).all? { |e|  e =~ /^((2[0-4]\d)|(25[0-5])|([0-1]?\d?\d))$/ }
+    return "rgb"
+  elsif string.split(delimiter).all? { |e|  e =~ /^((0?.\d+)|(1.\d.0))$/ }
+    return "hsv"
+  else
+    return nil
+  end
+end
+# Module Globals +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+options = {
+  :output => "rgb",
+  :input => nil,
+  :delimiter => ","
+}
+# Options parsing ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+OptionParser.new do |parser|
+  parser.banner = "Usage: #{$NAME} [options]"
+  # PRINT AND EXIT FUNCTIONS ---------------------------------------------------
+  # HELP MESSAGE
+  parser.on("-h", "--help", "Show this help message") do ||
+    puts parser
+    exit 0
+  end
+  # VERSION MESSAGE
+  parser.on("--version", "Show version") do ||
+    puts "#{$NAME}: version #{$VERSION}"
+    exit 0
+  end
+  # LIST MESSAGE
+  parser.on("-f", "--formats", "Show supported formats") do |v|
+    puts "Supported formats:"
+    $FORMATS.keys.each { |e|
+      puts "\t#{e}"
+    }
+    exit 0
+  end
+  # OUTPUT FORMAT
+  parser.on("-o", "--output FORMAT", "The output format") do |v|
+    options[:output] = v
+  end
+  parser.on("-i", "--input FORMAT", "The input format") do |v|
+    options[:input] = v
+  end
+  parser.on("-d", "--delimiter DELIMITER", "Set character delimiter") do |v|
+    options[:delimiter] = v
+  end
+end.parse!
+# Translating color ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ARGV.each do |color_string|
+  input = options[:input]
+  if input == nil
+    input = guess_color_type(color_string, options[:delimiter])
+    if input == nil
+      next
+    end
+  end
+  torgb = $FORMATS[input][0]
+  tooutput = $FORMATS[options[:output]][1]
+  rgb_color = torgb.call(color_string.split(options[:delimiter]))
+  output = tooutput.call(rgb_color, options[:delimiter])
+  puts output
+end
