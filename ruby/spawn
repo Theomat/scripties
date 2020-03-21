@@ -1,0 +1,24 @@
+#!/bin/bash
+# From https://unix.stackexchange.com/questions/4004/how-can-i-run-a-command-which-will-survive-terminal-close
+# by jozxyqk
+TIMEOUT=0.1
+
+#use nohup to run the command, suppressing its output and allowing the terminal to be closed
+#also send nohup's output to /dev/null, supressing nohup.out
+#run nohup in the background so this script doesn't block
+nohup "${@}" >/dev/null 2>&1 &
+NOHUP_PID=$!
+
+#kill this script after a short time, exiting with success status - command is still running
+#this is needed as there is no timeout argument for `wait` below
+MY_PID=$$
+trap "exit 0" SIGINT SIGTERM
+sleep $TIMEOUT && kill $MY_PID 2>/dev/null & #ignore "No such process" error if this exits normally
+
+#if the command finishes before the above timeout, everything may be just fine or there could have been an error
+wait $NOHUP_PID
+NOHUP_STATUS=$?
+#print an error if there was any. most commonly, there was a typo in the command
+[ $NOHUP_STATUS != 0 ] && echo "Error ${@}"
+#return the exit status of nohup, whatever it was
+exit $NOHUP_STATUS
