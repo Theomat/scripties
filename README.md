@@ -9,6 +9,14 @@ Otherwise, please check out the given link or the information given in the file 
 
 ## Bash scripts
 
+### Ex
+
+Location : ```bash/ex```
+
+Usage : ```ex <file>```
+
+Description : Extract the files from the specified archive based on its extension, it is already present in some distributions' default ```.bashrc```.
+
 ### Spawn
 
 Location : ```bash/spawn```
