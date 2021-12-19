@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+import argparse
+import importlib
+from importlib.metadata import PackageNotFoundError
+import os
+import sys
+from typing import Set
+
+__version__ = "0.1.0"
+# Parse arguments
+parser = argparse.ArgumentParser(
+    description="automatically find and list python dependencies in a requirements.txt fashion."
+)
+parser.add_argument(
+    type=str,
+    action="store",
+    dest="path",
+    help="path of the file(s) to list the dependencies of",
+)
+parser.add_argument(
+    "-l",
+    "--lock",
+    action="store_true",
+    help="add version lock requirements to the current used version (requires python >= 3.8 and to be executed in the environment where packages have been installed)",
+)
+args = parser.parse_args()
+
+# Query all python files
+def is_python_file(path: str):
+    return path.endswith(".py")
+
+
+files = []
+to_query = [args.path]
+while to_query:
+    path = to_query.pop()
+    if os.path.exists(path):
+        if os.path.isdir(path):
+            for file in os.listdir(path):
+                realpath = os.path.join(path, file)
+                if os.path.isdir(realpath):
+                    to_query.append(realpath)
+                elif is_python_file(file):
+                    files.append(realpath)
+        elif is_python_file(path):
+            files.append(path)
+# Get dependencies
+dependencies: Set[str] = set()
+
+
+def __add_deps(text: str):
+    packages = text.split(" ")
+    i = 0
+    while i < len(packages):
+        p = packages[i]
+        if "," in p:
+            sublist = p.split(",")
+            for el in sublist:
+                packages.append(el)
+            i += 1
+        elif "#" in p:
+            break
+        elif p == "as":
+            i += 2
+        else:
+            package = p.split(".")[0]
+            if len(package) > 0:
+                dependencies.add(package)
+            i += 1
+
+
+for file in files:
+    with open(file, "r") as fd:
+        lines = fd.readlines()
+        for line in lines:
+            unindented_line = line.strip(" \t\n")
+            if unindented_line.startswith("import"):
+                __add_deps(unindented_line[len("import") + 1 :])
+            elif unindented_line.startswith("from"):
+                interest = unindented_line[
+                    len("from") + 1 : unindented_line.index("import")
+                ]
+                __add_deps(interest)
+
+
+# Remove dependencies from standard library
+real_dependencies = set()
+for dep in dependencies:
+    spec = importlib.util.find_spec(dep)  # type: ignore
+    if spec is not None:
+        if "site-packages" in spec.origin:
+            real_dependencies.add(dep)
+    else:
+        real_dependencies.add(dep)
+dependencies = real_dependencies
+
+
+for dep in dependencies:
+    end = ""
+    if args.lock:
+        py_version = sys.version_info
+        if py_version.major >= 3 and py_version.minor >= 8:
+            from importlib.metadata import version
+        try:
+            end = "==" + version(dep)
+        except PackageNotFoundError:
+            pass
+    print(dep + end)
