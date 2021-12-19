@@ -23,27 +23,27 @@ Otherwise, please check out the given link or the information given in the file 
 
 ### Autolink
 
-Location : ```bash/autolink```
+Location: ```bash/autolink```
 
-Usage : ```autolink <folder_src> <folder_dst>```
+Usage: ```autolink <folder_src> <folder_dst>```
 
-Description : Find all executables files in a recursive manner from `folder_src` and for each create a symbolic link in `folder_dst` with the file's name. Note that it automatically ignores git files.
+Description: Find all executables files in a recursive manner from `folder_src` and for each create a symbolic link in `folder_dst` with the file's name. Note that it automatically ignores git files.
 
 ### Ex
 
-Location : ```bash/ex```
+Location: ```bash/ex```
 
-Usage : ```ex <file>```
+Usage: ```ex <file>```
 
-Description : Extract the files from the specified archive based on its extension, it is already present in some distributions' default ```.bashrc```.
+Description: Extract the files from the specified archive based on its extension, it is already present in some distributions' default ```.bashrc```.
 
 ### Spawn
 
-Location : ```bash/spawn```
+Location: ```bash/spawn```
 
-Usage : ```spawn cmd```
+Usage: ```spawn cmd```
 
-Description : Spawn the specified ```cmd``` as a detached process of the current terminal using ```nohup``` (GNU).
+Description: Spawn the specified ```cmd``` as a detached process of the current terminal using ```nohup``` (GNU).
 
 ---
 
@@ -51,23 +51,23 @@ Description : Spawn the specified ```cmd``` as a detached process of the current
 
 ### Pydeps
 
-Location : ```python/pydeps```
+Location: ```python/pydeps```
 
-Usage : ```pydeps -h```
+Usage: ```pydeps -h```
 
-Description : Automatically find and list python dependencies in a requirements.txt fashion.
+Description: Automatically find and list python dependencies in a requirements.txt fashion.
 
 ---
 
 ## Ruby scripts
 
-Location : ```ruby/colt```
+Location: ```ruby/colt```
 
-Usage : ```colt -h```
+Usage: ```colt -h```
 
-Description : Translates the given colors from one color space to another.
+Description: Translates the given colors from one color space to another.
 
-Supports : rgb, bgr, hsv, bw, grayscale
+Supports: rgb, bgr, hsv, bw, grayscale
 
 ---
 
