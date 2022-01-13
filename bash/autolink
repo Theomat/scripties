@@ -6,7 +6,8 @@ elif ! [ -d $2 ]; then
 else
     files=$(find $1 -path "$1/\.git" -prune -o -type d -exec find {} -path "$1/\.git" -prune -o -type f -nowarn -executable -print \;)
     for file in $(echo $files | tr ' ' '\n'); do
-        if [ -f $file ]; then
+        if [ -f $file ] && [ ! "${file: -7}" == ".sample" ];
+        then
             filename="${fullfile##*/}"
             fullpath=$(readlink -f $file)
             ln -s -f $fullpath $2/$filename
