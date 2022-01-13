@@ -29,6 +29,14 @@ Usage: ```autolink <folder_src> <folder_dst>```
 
 Description: Find all executables files in a recursive manner from `folder_src` and for each create a symbolic link in `folder_dst` with the file's name. Note that it automatically ignores git files.
 
+### Clean
+
+Location: ```bash/clean```
+
+Usage: ```clean```
+
+Description: Script that calls a series of package manger to clean their cache and remove unused packages.
+
 ### Ex
 
 Location: ```bash/ex```

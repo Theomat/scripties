@@ -1,0 +1,11 @@
+#!/bin/bash
+# >>> Package Managers
+sudo apt clean 2>/dev/null
+yes | pamac remove -o 2>/dev/null
+yes | pamac clean --keep 3 2>/dev/null
+
+# >>> Python tools
+pip cache purge 2> /dev/null
+poetry cache clear --all 2> /dev/null
+yes | conda clean -a 2> /dev/null
+
