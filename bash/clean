@@ -3,7 +3,7 @@
 sudo apt clean 2>/dev/null
 yes | pamac remove -o 2>/dev/null
 yes | pamac clean --keep 3 2>/dev/null
-yes | sudo pacman -Scc
+yes | sudo pacman -Scc 2>/dev/null
 
 # >>> Python tools
 pip cache purge 2> /dev/null
