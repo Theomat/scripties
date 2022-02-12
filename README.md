@@ -88,3 +88,12 @@ If you have a folder `DST` that's in your `PATH`, what you can do once you have 
 ```
 
 This will create symlinks from all of the scripts in the scripties into your `DST` folder enabling you to run them directly from the command line.
+
+---
+
+## Nice unknown utilities
+
+### ghostscript
+
+Allows to split and merge PDF files from the command line.
+It enables to do more but that's what I am interested in.
