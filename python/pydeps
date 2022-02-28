@@ -76,7 +76,7 @@ for file in files:
             unindented_line = line.strip(" \t\n")
             if unindented_line.startswith("import"):
                 __add_deps(unindented_line[len("import") + 1 :])
-            elif unindented_line.startswith("from"):
+            elif unindented_line.startswith("from ") and " import " in unindented_line:
                 interest = unindented_line[
                     len("from") + 1 : unindented_line.index("import")
                 ]
