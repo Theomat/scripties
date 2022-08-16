@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+import argparse
+import glob
+import os
+import tqdm
+from mutagen.easyid3 import EasyID3
+from mutagen.mp3 import MP3
+from mutagen.id3 import APIC
+from bing_image_downloader import downloader
+
+__version__ = "0.1.0"
+# Parse arguments
+parser = argparse.ArgumentParser(
+    description="automatically rename song files downloaded from youtube."
+)
+parser.add_argument(
+    type=str,
+    action="store",
+    dest="path",
+    help="path of the file(s) to list the dependencies of",
+)
+
+args = parser.parse_args()
+path: str = args.path
+
+COVER_FOLDER = f"{os.path.expanduser('~')}/.cover"
+
+
+def dl_cover_for(name: str) -> str:
+    if not os.path.exists(COVER_FOLDER):
+        os.mkdir(COVER_FOLDER)
+    query_folder = os.path.join(COVER_FOLDER, name)
+    if not os.path.exists(query_folder) or len(os.listdir(query_folder)) == 0:
+        downloader.download(name, limit=1,  output_dir=COVER_FOLDER, adult_filter_off=True, force_replace=False, timeout=60, verbose=False)
+    for file in os.listdir(query_folder):
+        return os.path.join(COVER_FOLDER, name, file)
+
+def try_adding_cover(file: str) -> None:
+    query = os.path.basename(file)[:-4]
+    authors = ""
+    if "-" in filename:
+        i = filename.index("-")
+        authors = filename[:i].strip()
+        if "," in authors:
+            query = authors[:authors.find(",")].strip()
+        else:
+            query = authors
+    query = query.lower().replace(" ", "_")
+    image_path = dl_cover_for(query)
+    if image_path is None:
+        return
+
+    extension = image_path[image_path.rindex(".")+1:].lower().strip()
+    if extension == "jpg":
+        extension = "jpeg"
+    try:
+        audio = MP3(file)   
+        audio.tags.add(
+            APIC(
+                encoding=3, # 3 is for utf-8
+                mime=f'image/{extension}', # image/jpeg or image/png
+                type=3, # 3 is for the cover image
+                desc=u'Cover',
+                data=bytes(open(image_path, 'r', errors = 'ignore').read(), "utf-8")
+            )
+        )
+        audio.save()
+    except:
+        pass
+
+def __remove__blocks__(text: str) -> str:
+    par_level = 0
+    sq_level = 0
+    start = 1e10
+    for i, c in enumerate(text):
+        if c == "(" and sq_level == 0:
+            par_level += 1
+            start = min(i, start)
+        elif c == ")" and sq_level == 0:
+            par_level -= 1
+            if par_level == 0:
+                return text[:start] + __remove__blocks__(text[i+1:])
+        
+        if c == "[" and par_level == 0:
+            sq_level += 1
+            start = min(i, start)
+        elif c == "]" and par_level == 0:
+            sq_level -= 1
+            if sq_level == 0:
+                return text[:start] + __remove__blocks__(text[i+1:])
+    return text
+
+count = 0
+treated = 0
+for file in tqdm.tqdm(glob.glob(os.path.join(path, "*.mp3"))):
+    count += 1
+    try:
+        filename = os.path.basename(file)[:-4]
+        audio = EasyID3(file)
+        authors = ""
+        if "-" in filename:
+            i = filename.index("-")
+            authors = filename[:i].strip()
+            audio["artist"] = authors
+        else:
+            i = -1
+        title = __remove__blocks__(filename[i + 1:].strip()).strip()
+        audio["title"] = title
+        audio["album"] = title
+        audio.save()
+        treated += 1
+    except:
+        pass
+    
+    new_file = os.path.join(path, __remove__blocks__(filename) + ".mp3")
+    os.rename(file, new_file)
+    try_adding_cover(new_file)      
+if count > 0:  
+    print(f"Treated {treated}/{count} ({treated/count:%}) files")
