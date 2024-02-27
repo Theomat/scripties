@@ -11,6 +11,9 @@ files=""
 
 function thunderbird_home {
     local thunderbird_folder=$HOME/.thunderbird
+    if [ ! -d "$thunderbird_folder" ]; then
+        thunderbird_folder="$HOME/Library/Thunderbird/Profiles"
+    fi
     local real_folder=$(ls $thunderbird_folder | grep release)
     echo ${thunderbird_folder}/${real_folder}
 }
