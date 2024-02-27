@@ -10,6 +10,7 @@ Otherwise, please check out the given link or the information given in the file 
   - [Autolink](#autolink)
   - [Ex](#ex)
   - [Spawn](#spawn)
+  - [Thunderbird Sync](#thunderbird-sync)
 - [Python scripts](#python-scripts)
   - [Pydeps](#pydeps)
 - [Ruby scripts](#ruby-scripts)
@@ -52,6 +53,14 @@ Location: ```bash/spawn```
 Usage: ```spawn cmd```
 
 Description: Spawn the specified ```cmd``` as a detached process of the current terminal using ```nohup``` (GNU).
+
+### Thunderbird Sync
+
+Location: ```bash/thunderbird_sync```
+
+Usage: ```thunderbird_sync <push|pull>```
+
+Description: Synchronize your messsage filters via a git repository which you can configure inside the script.
 
 ---
 

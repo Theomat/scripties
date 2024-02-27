@@ -1,0 +1,75 @@
+#!/bin/bash
+GIT="git@github.com:Theomat/thunderbird.git"
+
+arg=$1
+if ! [ "$arg" == "push" ] && ! [ "$arg" == "pull" ]; then
+    echo "argument must be either push or pull!"
+    exit 1
+fi
+
+files="training.dat"
+
+function thunderbird_home {
+    local thunderbird_folder=$HOME/.thunderbird
+    local real_folder=$(ls $thunderbird_folder | grep release)
+    echo ${thunderbird_folder}/${real_folder}
+}
+
+
+function list_msgFilterRules {
+    local f=$(thunderbird_home)
+    local out=""
+    local folders="ImapMail"
+    for folder in $folders; do
+        local x=$(ls -d $f/$folder/*/)
+        out="$out $x"
+    done
+    local cst=","
+    f=$(echo $f | tr '/' $cst)
+    echo $out | tr "/" $cst | sed -r "s/$f//g" | tr $cst '/'
+}
+
+function clever_cp {
+    cp -r $1 $2 2> /dev/null
+    if ! [ $? == 0 ] ; then
+        folder=$(echo $2 | cut -d "/" -f3 --complement)
+        mkdir -p $folder
+        if ! [ $? == 0 ] ; then
+            exit 2
+        else
+            cp -r $1 $2
+        fi
+    fi
+}
+
+function git_name {
+    local tmp=${1%/*.git}
+    local out=${1#"${tmp}/"}
+    echo ${out%.git}
+}
+
+
+for folder in $(list_msgFilterRules); do
+    folder=$(echo $folder | cut -d "/" -f2-)
+    files="$files ${folder}msgFilterRules.dat"
+done
+thunderbird_folder=$(thunderbird_home)
+# Create a tempdir (see https://unix.stackexchange.com/questions/30091/fix-or-alternative-for-mktemp-in-os-x)
+mytmpdir=$(mktemp -d 2>/dev/null || mktemp -d -t 'mytmpdir')
+
+cd $mytmpdir
+git clone -q $GIT
+cd $(git_name $GIT)
+
+if [ "$arg" == "pull" ]; then
+    cp -r * $thunderbird_folder 
+else
+    for file in $files; do
+        clever_cp $thunderbird_folder/$file $file
+    done
+    git add *
+    git commit -m "update" >/dev/null
+    git push
+fi
+cd ../..
+yes | rm -r $mytmpdir 
