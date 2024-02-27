@@ -7,7 +7,7 @@ if ! [ "$arg" == "push" ] && ! [ "$arg" == "pull" ]; then
     exit 1
 fi
 
-files="training.dat"
+files=""
 
 function thunderbird_home {
     local thunderbird_folder=$HOME/.thunderbird
