@@ -1,0 +1,237 @@
+#!/usr/bin/env python3
+import argparse
+import math
+import shutil
+import subprocess
+import sys
+import time
+from typing import Optional
+
+__version__ = "0.1.0"
+# Parse arguments
+parser = argparse.ArgumentParser(description="run list of commands given in stdin.")
+parser.add_argument(
+    "--stats",
+    action="store_true",
+    help="print stats at the end",
+)
+parser.add_argument(
+    "-t",
+    "--timeout",
+    default=None,
+    type=float,
+    help="timeout for commands",
+)
+args = parser.parse_args()
+show_stats: bool = args.stats
+timeout: Optional[float] = args.timeout
+
+
+# ====================================================
+# COLOR IN TERMINAL
+# ====================================================
+class AlwaysEmptyString:
+    def __getattribute__(self, name: str) -> str:
+        return ""
+
+
+class Fore:
+    def __getattribute__(self, name):
+        codes = {
+            "LIGHTGREEN": 92,
+            "RESET": 39,
+            "LIGHTYELLOW": 93,
+            "LIGHTBLUE": 94,
+            "RED": 91,
+        }
+        return f"\033[{codes[name]}m"
+
+
+def get_color_helper():
+    """
+    Returns a seamless interface so that colors are enabled for tty but disabled otherwise.
+    """
+    try:
+        if sys.stdout.isatty():
+            return Fore()
+        else:
+            return AlwaysEmptyString()
+    except:
+        return AlwaysEmptyString()
+
+
+# ====================================================
+# RUN A COMMAND
+# ====================================================
+def run_command(command: str) -> bool:
+    try:
+        process = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            timeout=timeout if timeout is not None and timeout > 0 else None,
+        )
+        if process.returncode != 0:
+            fail_command(command, process)
+            return False
+    except TimeoutError:
+        print()
+        print(f"{F.RED}Timed out{F.RESET} after {timeout}s: '{command}'")
+        return False
+    return True
+
+
+def fail_command(command: str, process):
+    print()
+    print(f"{F.RED}Failed executing{F.RESET}: '{command}'")
+    print(process.stderr.decode(), file=sys.stderr)
+
+
+# ====================================================
+# tqdm replacement from https://github.com/tinygrad/tinygrad/blob/master/tinygrad/helpers.py
+# ====================================================
+class tqdm:
+    def __init__(
+        self,
+        desc: str = "",
+        disable: bool = False,
+        unit: str = "it",
+        unit_scale=False,
+        total: Optional[int] = None,
+        rate: int = 100,
+        max_desc: int = 1,
+    ):
+        self.disable, self.unit, self.unit_scale, self.rate = (
+            disable,
+            unit,
+            unit_scale,
+            rate,
+        )
+        self.st, self.i, self.n, self.skip, self.t = (
+            time.perf_counter(),
+            -1,
+            0,
+            1,
+            total,
+        )
+        self.max_desc = max_desc
+        self.set_description(desc)
+        self.update(0)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        self.update(close=True)
+
+    def set_description(self, desc: str):
+        self.desc = f"{F.LIGHTBLUE}{desc}{F.RESET}".ljust(self.max_desc)
+        self.desc += ": "
+
+    def update(self, n: int = 0, close: bool = False):
+        self.n, self.i = self.n + n, self.i + 1
+        if self.disable:  # or (not close and self.i % self.skip != 0):
+            return
+        prog, elapsed, ncols = (
+            self.n / self.t if self.t else 0,
+            time.perf_counter() - self.st,
+            shutil.get_terminal_size().columns,
+        )
+        # if self.i / elapsed > self.rate and self.i:
+        #     self.skip = max(int(self.i / elapsed) // self.rate, 1)
+
+        def HMS(t):
+            return ":".join(
+                f"{x:02d}" if i else str(x)
+                for i, x in enumerate(
+                    [int(t) // 3600, int(t) % 3600 // 60, int(t) % 60]
+                )
+                if i or x
+            )
+
+        def SI(x):
+            return (
+                (
+                    f"{x/1000**int(g:=math.log(x,1000)):.{int(3-3*math.fmod(g,1))}f}"[
+                        :4
+                    ].rstrip(".")
+                    + " kMGTPEZY"[int(g)].strip()
+                )
+                if x
+                else "0.00"
+            )
+
+        prog_text = (
+            f'{SI(self.n)}{f"/{SI(self.t)}" if self.t else self.unit}'
+            if self.unit_scale
+            else f'{self.n}{f"/{self.t}" if self.t else self.unit}'
+        )
+        est_text = f'<{HMS(elapsed/prog-elapsed) if self.n else "?"}' if self.t else ""
+        it_text = (
+            (SI(self.n / elapsed) if self.unit_scale else f"{self.n/elapsed:5.2f}")
+            if self.n
+            else "?"
+        )
+        suf = f"{prog_text} [{HMS(elapsed)}{est_text}, {it_text}{self.unit}/s]"
+        bar_prefix = f"{F.LIGHTYELLOW}{prog:3.0%}{F.RESET}|{F.LIGHTGREEN}"
+        bar_suffix = "| "
+        # WTF is this 5???
+        sz = max(
+            ncols - len(self.desc) - len(bar_prefix) - len(bar_suffix) - len(suf) - 5, 1
+        )
+        bar = (
+            "\r"
+            + self.desc
+            + (
+                f'{bar_prefix}{("█"*int(num:=sz*prog)+" ▏▎▍▌▋▊▉"[int(8*num)%8].strip()).ljust(sz," ")}{F.RESET}{bar_suffix}'
+                if self.t
+                else ""
+            )
+            + suf
+        )
+        print(bar[: ncols + 1], flush=True, end="\n" * close, file=sys.stderr)
+
+    @classmethod
+    def write(cls, s: str):
+        print(f"\r\033[K{s}", flush=True, file=sys.stderr)
+
+
+# ====================================================
+# READ FROM STDIN
+# ====================================================
+F = get_color_helper()
+lines = [line.strip("\n") for line in sys.stdin]
+if len(lines) == 0:
+    sys.exit(0)
+times = []
+
+
+def command_prefix(command: str) -> str:
+    parts = command.split(" ")
+    for i in range(len(parts)):
+        if parts[i].startswith("-"):
+            return " ".join(parts[:i])
+    return command
+
+
+max_desc_len = max(len(command_prefix(line)) for line in lines)
+total = len(lines)
+pbar = tqdm(total=total, max_desc=max_desc_len)
+for done, line in enumerate(lines):
+    pbar.set_description(command_prefix(line))
+    pbar.update()
+    start = time.perf_counter()
+    success = run_command(line)
+    times.append(time.perf_counter() - start)
+    if not success:
+        break
+    pbar.update(1)
+pbar.update(close=True)
+if show_stats:
+    total_time = sum(times)
+    max_line_len = max(len(line) for line in lines)
+    for line, time_used in zip(lines, times):
+        str_line = line.ljust(max_line_len)
+        str_time = f"{time_used:.2f}"
+        str_ratio_time = f"{F.LIGHTYELLOW}{time_used/total_time:.2%}{F.RESET}"
+        print(f"{F.LIGHTBLUE}{str_line}{F.RESET} {str_time:>6}s {str_ratio_time:>6}")
