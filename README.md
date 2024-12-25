@@ -15,6 +15,7 @@ Otherwise, please check out the given link or the information given in the file 
   - [Pydeps](#pydeps)
   - [Runl](#runl)
 - [Ruby scripts](#ruby-scripts)
+  - [Colt](#colt)
 - [Easy Install](#easy-install)
 
 <!--end toc-->
@@ -86,6 +87,8 @@ Description: Run a list of command given in stdin, nice way to run locally your 
 ---
 
 ## Ruby scripts
+
+### Colt
 
 Location: ```ruby/colt```
 
