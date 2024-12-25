@@ -13,6 +13,7 @@ Otherwise, please check out the given link or the information given in the file 
   - [Thunderbird Sync](#thunderbird-sync)
 - [Python scripts](#python-scripts)
   - [Pydeps](#pydeps)
+  - [Runl](#runl)
 - [Ruby scripts](#ruby-scripts)
 - [Easy Install](#easy-install)
 
@@ -73,6 +74,14 @@ Location: ```python/pydeps```
 Usage: ```pydeps -h```
 
 Description: Automatically find and list python dependencies in a requirements.txt fashion.
+
+### Runl
+
+Location: ```python/runl```
+
+Usage: ```runl -h```
+
+Description: Run a list of command given in stdin, nice way to run locally your parallel scripts.
 
 ---
 
